@@ -27,6 +27,16 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ─── Rota raiz (informativa) ───────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.json({
+    service: "StudyQuest API",
+    version: "1.0.0",
+    status: "online",
+    docs: "/api/health",
+  });
+});
+
 // ─── Rotas ─────────────────────────────────────────────────────────────────
 app.use("/api", routes);
 
