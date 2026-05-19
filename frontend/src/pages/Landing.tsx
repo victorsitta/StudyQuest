@@ -129,7 +129,7 @@ const Landing = () => {
           </div>
           <Link to="/auth">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button variant="outline" className="rounded-full px-6 md:px-8 font-bold border-slate-700 hover:bg-emerald-500/10 hover:border-emerald-400 hover:text-emerald-400 transition-all duration-300 uppercase text-xs tracking-widest">
+              <Button variant="outline" className="rounded-full px-6 md:px-8 font-bold border-slate-600 bg-transparent text-slate-200 hover:bg-emerald-500/10 hover:border-emerald-400 hover:text-emerald-400 transition-all duration-300 uppercase text-xs tracking-widest">
                 Login / Start
               </Button>
             </motion.div>
