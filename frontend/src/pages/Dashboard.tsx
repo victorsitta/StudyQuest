@@ -1,194 +1,251 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Play, Star, Zap, Crown, Rocket, Sparkles, Brain, Scroll, FlaskConical, Globe } from "lucide-react";
+import { Play, Star, Zap, Crown, Rocket, Scroll, Lock, CheckCircle2, LogOut } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
 import { motion } from "framer-motion";
 
+// Ícones por matéria
+const SUBJECT_ICONS: Record<string, React.ReactNode> = {
+  "Física":    <Rocket className="w-8 h-8" />,
+  "Química":   <Zap className="w-8 h-8" />,
+  "Biologia":  <Star className="w-8 h-8" />,
+};
+
+// Gradientes por matéria
+const SUBJECT_COLORS: Record<string, string> = {
+  "Física":   "from-blue-600 to-cyan-400",
+  "Química":  "from-purple-600 to-pink-400",
+  "Biologia": "from-emerald-600 to-teal-400",
+};
+
 const Dashboard = () => {
-  const { user } = useGame(); // Não precisamos mais do 'phases' vindo do context se vamos fixá-los aqui
+  const { user, phases, isLoggedIn, logout } = useGame();
   const navigate = useNavigate();
-  
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
+  // Proteção de rota — redireciona para login se não autenticado
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 2;
-      const y = (e.clientY / window.innerHeight - 0.5) * 2;
-      setMousePos({ x, y });
-    };
+    if (!isLoggedIn) {
+      navigate("/auth", { replace: true });
+    }
+  }, [isLoggedIn, navigate]);
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  if (!isLoggedIn) return null;
 
-  // 👇 DEFINIÇÃO CLARA DOS JOGOS E SUAS ROTAS 👇
-  // Aqui você define exatamente o visual, o conteúdo e a ROTA de cada card.
-  const activePhases = [
-    { 
-      id: 1, 
-      title: "Treinamento de Newton", 
-      subject: "Física - Dinâmica", 
-      icon: <Rocket />, // Atualizado para combinar com Física
-      color: "from-blue-600 to-cyan-400", 
-      shadow: "shadow-cyan-500/50",
-      route: "/newton" // Rota específica para este jogo
-    },
-    { 
-      id: 2, 
-      title: "Atividades Esportivas", 
-      subject: "Física - Esportes", 
-      icon: <Scroll />, 
-      color: "from-amber-500 to-orange-400", 
-      shadow: "shadow-orange-500/50",
-      route: "/sports" // Rota específica (você precisa criar essa rota no App.tsx)
-    },
-    // { 
-    //   id: 3, 
-    //   title: "Caverna da Lógica", 
-    //   subject: "Matemática", 
-    //   icon: <Brain />, 
-    //   color: "from-pink-500 to-purple-500", 
-    //   shadow: "shadow-pink-500/50",
-    //   route: "/caverna-logica" // Rota específica (você precisa criar essa rota no App.tsx)
-    // },
-  ];
+  const xpPercent = Math.round((user.xp / user.maxXp) * 100);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
 
   return (
-    <div className="min-h-screen bg-[#070714] text-white overflow-hidden relative font-sans selection:bg-pink-500/30">
-      
-      {/* FUNDO INTERATIVO */}
+    <div className="min-h-screen bg-[#070714] text-white overflow-x-hidden relative font-sans">
+
+      {/* Fundo estático — sem movimento para não distrair */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 mix-blend-screen" />
-        
-        <motion.div 
-          animate={{ x: mousePos.x * -20, y: mousePos.y * -20 }} 
-          transition={{ type: "spring", stiffness: 50, damping: 20 }}
-          className="absolute inset-0"
-        >
-          <div className="absolute top-[10%] left-[20%] w-[40rem] h-[40rem] bg-purple-900/20 blur-[150px] rounded-full" />
-          <div className="absolute bottom-[10%] right-[10%] w-[30rem] h-[30rem] bg-blue-900/20 blur-[120px] rounded-full" />
-        </motion.div>
-
-        <motion.div 
-          animate={{ x: mousePos.x * -60, y: mousePos.y * -60 }} 
-          transition={{ type: "spring", stiffness: 70, damping: 25 }}
-          className="absolute inset-0"
-        >
-          <Star className="absolute top-[15%] right-[25%] w-12 h-12 text-amber-300/40 animate-pulse" fill="currentColor" />
-          <Star className="absolute bottom-[25%] left-[15%] w-8 h-8 text-pink-300/40 animate-pulse delay-1000" fill="currentColor" />
-          <Sparkles className="absolute top-[40%] left-[45%] w-16 h-16 text-cyan-300/30" />
-        </motion.div>
+        <div className="absolute top-[5%] left-[10%] w-[40rem] h-[40rem] bg-purple-900/15 blur-[160px] rounded-full" />
+        <div className="absolute bottom-[5%] right-[5%] w-[30rem] h-[30rem] bg-blue-900/15 blur-[140px] rounded-full" />
       </div>
 
-      {/* HUD HEADER */}
-      <div className="relative z-50 pt-6 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto bg-[#13132B]/80 backdrop-blur-xl border-4 border-slate-700/50 rounded-[2.5rem] p-4 shadow-[0_15px_40px_rgba(0,0,0,0.6)] flex items-center justify-between">
-          
-          <div className="flex items-center gap-4">
-            <div className="relative group cursor-pointer">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-3xl p-1 shadow-lg flex items-center justify-center text-4xl md:text-5xl border-4 border-[#070714] group-hover:scale-105 transition-transform">
-                {user?.avatar || "👨‍🎓"}
-              </div>
-              <div className="absolute -bottom-3 -right-3 bg-pink-600 text-white text-sm font-black px-3 py-1 rounded-full border-4 border-[#070714] shadow-md">
-                LVL {user?.level || 3}
-              </div>
+      {/* ── HUD HEADER ─────────────────────────────────────────────────────── */}
+      <header className="relative z-50 pt-5 px-4 md:px-8">
+        <div className="max-w-5xl mx-auto bg-[#13132B]/90 backdrop-blur-xl border-2 border-slate-700/50 rounded-[2rem] px-5 py-4 shadow-xl flex items-center gap-4">
+
+          {/* Avatar + nível */}
+          <div className="relative shrink-0">
+            <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-3xl border-4 border-[#070714] shadow-lg select-none">
+              {user.avatar}
             </div>
-            <div className="hidden sm:block">
-              <p className="font-black text-white text-xl md:text-2xl uppercase tracking-tighter drop-shadow-md">{user?.name || "ESTUDANTE QUEST"}</p>
-              <p className="text-xs text-amber-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
-                <Crown className="w-4 h-4" /> Mestre Supremo
-              </p>
+            <div className="absolute -bottom-2 -right-2 bg-pink-600 text-white text-xs font-black px-2 py-0.5 rounded-full border-2 border-[#070714]">
+              {user.level}
             </div>
           </div>
 
-          <div className="flex-1 max-w-[300px] md:max-w-[400px] mx-6 hidden sm:block">
-            <div className="flex justify-between text-xs md:text-sm font-black text-slate-300 uppercase tracking-widest mb-2 px-1">
-              <span className="flex items-center gap-1.5 text-cyan-400"><Zap className="w-4 h-4" fill="currentColor"/> Poder de EXP</span>
-              <span>{user?.xp || 450} / {user?.maxXp || 1000}</span>
-            </div>
-            <div className="h-6 md:h-8 w-full bg-[#070714] rounded-full p-1.5 border-2 border-slate-700/50 relative overflow-hidden shadow-inner">
-              <motion.div 
-                initial={{ width: 0 }} animate={{ width: `${((user?.xp || 450) / (user?.maxXp || 1000)) * 100}%` }} transition={{ duration: 1.5, type: "spring" }}
-                className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full relative"
-              >
-                <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/30 rounded-full" />
-              </motion.div>
+          {/* Nome + XP */}
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-white text-base truncate">
+              {user.name || "Estudante"}
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-3 bg-[#070714] rounded-full overflow-hidden border border-slate-700/50">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpPercent}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"
+                />
+              </div>
+              <span className="text-xs text-slate-400 font-bold shrink-0">
+                {user.xp}/{user.maxXp} XP
+              </span>
             </div>
           </div>
 
-          <Link to="/profile">
-            <motion.div whileHover={{ scale: 1.1, rotate: 15 }} whileTap={{ scale: 0.9 }}>
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-800 rounded-[1.5rem] flex items-center justify-center border-b-4 border-slate-900 shadow-xl cursor-pointer text-2xl hover:bg-slate-700 transition-colors">
-                ⚙️
+          {/* Botões de ação */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to="/profile" aria-label="Ver perfil">
+              <div className="w-11 h-11 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center text-xl transition-colors border border-slate-700/50">
+                👤
               </div>
-            </motion.div>
-          </Link>
-        </div>
-      </div>
-
-      {/* ÁREA DOS JOGOS */}
-      <div className="relative z-10 px-6 md:px-10 pt-16 pb-32 max-w-[1600px] mx-auto min-h-[80vh] flex flex-col justify-center">
-        
-        <div className="text-center mb-16">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }} className="inline-block bg-pink-500 text-white font-black uppercase tracking-widest text-sm px-6 py-2 rounded-full mb-4 shadow-[0_0_20px_rgba(236,72,153,0.5)]">
-            Mundo Aberto Liberado
-          </motion.div>
-          <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter drop-shadow-2xl flex items-center justify-center gap-4">
-            Escolha seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500">Destino</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 md:gap-10">
-          
-          {activePhases.map((phase: any, index: number) => (
-            <motion.div
-              key={phase.id}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, type: "spring", bounce: 0.4 }}
-              className="group relative h-[280px] md:h-[320px] cursor-pointer perspective-1000"
+            </Link>
+            <button
+              onClick={handleLogout}
+              aria-label="Sair da conta"
+              className="w-11 h-11 bg-slate-800 hover:bg-rose-900/50 rounded-xl flex items-center justify-center transition-colors border border-slate-700/50 text-slate-400 hover:text-rose-400"
             >
-              <div className={`w-full h-full rounded-[2.5rem] bg-[#13132B] border-4 border-slate-700/50 p-6 flex flex-col items-center justify-center overflow-hidden transition-all duration-500 transform-gpu group-hover:-translate-y-4 group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] group-hover:border-white/20 relative`}>
-                
-                <div className={`absolute inset-0 bg-gradient-to-br ${phase.color || "from-cyan-600 to-blue-500"} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white blur-[80px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 rounded-full`} />
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </header>
 
-                <motion.div 
-                  className={`w-24 h-24 rounded-3xl bg-[#070714] border-4 border-slate-700/50 flex items-center justify-center text-5xl mb-6 shadow-xl relative z-10 transition-transform duration-500 group-hover:-translate-y-6 group-hover:scale-110 group-hover:border-white/30`}
-                >
-                  <div className={`text-white drop-shadow-lg`}>
-                    {phase.icon || <Play />}
-                  </div>
-                </motion.div>
+      {/* ── CONTEÚDO PRINCIPAL ─────────────────────────────────────────────── */}
+      <main className="relative z-10 px-4 md:px-8 pt-10 pb-20 max-w-5xl mx-auto">
 
-                <div className="text-center relative z-10 transition-transform duration-500 group-hover:-translate-y-6">
-                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white mb-1">
-                    {phase.title}
-                  </h3>
-                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
-                    {phase.subject}
-                  </p>
-                </div>
-
-                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-10 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-out z-20">
-                  <button
-                    onClick={() => {
-                      // 👇 AQUI ESTÁ A MÁGICA 👇
-                      // Ele vai navegar exatamente para a rota definida no objeto activePhases lá em cima
-                      navigate(phase.route);
-                    }}
-                    className={`w-full py-4 rounded-2xl bg-gradient-to-r ${phase.color || "from-cyan-400 to-blue-500"} text-white font-black uppercase tracking-widest text-lg shadow-[0_8px_0_rgba(0,0,0,0.3)] hover:shadow-[0_4px_0_rgba(0,0,0,0.3)] hover:translate-y-1 active:shadow-none active:translate-y-2 transition-all flex items-center justify-center gap-3`}
-                  >
-                    <Play fill="currentColor" className="w-6 h-6" /> Entrar
-                  </button>
-                </div>
-
-              </div>
-            </motion.div>
-          ))}
+        {/* Saudação clara — o usuário sabe onde está */}
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-black text-white">
+            Olá, {user.name || "Estudante"}! 👋
+          </h1>
+          <p className="text-slate-400 mt-1 text-base">
+            Escolha uma fase para continuar sua jornada.
+          </p>
         </div>
 
-      </div>
+        {/* ── TRILHA DE FASES ──────────────────────────────────────────────── */}
+        <section aria-label="Trilha de fases">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">
+            Trilha de Estudos
+          </h2>
+
+          <div className="flex flex-col gap-4">
+            {phases.map((phase, index) => {
+              const color = SUBJECT_COLORS[phase.subject] || "from-slate-600 to-slate-500";
+              const icon = SUBJECT_ICONS[phase.subject] || <Star className="w-8 h-8" />;
+              const isUnlocked = phase.unlocked;
+              const isCompleted = phase.completed;
+
+              return (
+                <motion.div
+                  key={phase.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.06, duration: 0.3 }}
+                >
+                  <button
+                    disabled={!isUnlocked}
+                    onClick={() => isUnlocked && navigate("/play", { state: { phaseId: phase.id } })}
+                    aria-label={`${phase.title} — ${phase.subject}${isCompleted ? " — Concluída" : ""}${!isUnlocked ? " — Bloqueada" : ""}`}
+                    className={`
+                      w-full text-left rounded-[1.5rem] border-2 p-5 flex items-center gap-5 transition-all duration-200
+                      ${isUnlocked
+                        ? "bg-[#13132B] border-slate-700/50 hover:border-white/20 hover:bg-[#1a1a38] cursor-pointer active:scale-[0.99]"
+                        : "bg-[#0d0d20] border-slate-800/50 cursor-not-allowed opacity-60"
+                      }
+                    `}
+                  >
+                    {/* Ícone da fase */}
+                    <div
+                      className={`
+                        w-16 h-16 rounded-2xl flex items-center justify-center shrink-0
+                        ${isUnlocked
+                          ? `bg-gradient-to-br ${color} text-white shadow-lg`
+                          : "bg-slate-800 text-slate-600"
+                        }
+                      `}
+                    >
+                      {isUnlocked ? icon : <Lock className="w-7 h-7" />}
+                    </div>
+
+                    {/* Texto */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-bold uppercase tracking-wider ${isUnlocked ? "text-slate-400" : "text-slate-600"}`}>
+                          {phase.subject}
+                        </span>
+                        {isCompleted && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3" /> Concluída
+                          </span>
+                        )}
+                      </div>
+                      <p className={`font-black text-lg mt-0.5 ${isUnlocked ? "text-white" : "text-slate-600"}`}>
+                        {phase.title}
+                      </p>
+                    </div>
+
+                    {/* Seta / cadeado */}
+                    <div className="shrink-0">
+                      {isUnlocked ? (
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-md`}>
+                          <Play className="w-5 h-5 text-white" fill="white" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-slate-600" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── JOGOS ESPECIAIS ──────────────────────────────────────────────── */}
+        <section aria-label="Jogos especiais" className="mt-14">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">
+            Módulos Especiais
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              {
+                title: "Leis de Newton",
+                subject: "Física — Dinâmica",
+                icon: <Rocket className="w-8 h-8" />,
+                color: "from-blue-600 to-cyan-400",
+                route: "/newton",
+                description: "Teoria, simulador interativo e quiz",
+              },
+              {
+                title: "Esportes Paralímpicos",
+                subject: "Educação Física",
+                icon: <Scroll className="w-8 h-8" />,
+                color: "from-amber-500 to-orange-400",
+                route: "/sports",
+                description: "Goalball, Futebol e Handebol",
+              },
+            ].map((game) => (
+              <motion.div
+                key={game.route}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <button
+                  onClick={() => navigate(game.route)}
+                  className="w-full text-left rounded-[1.5rem] bg-[#13132B] border-2 border-slate-700/50 hover:border-white/20 hover:bg-[#1a1a38] p-5 flex items-center gap-4 transition-all duration-200 active:scale-[0.99] cursor-pointer"
+                  aria-label={`Abrir módulo: ${game.title}`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${game.color} flex items-center justify-center text-white shrink-0 shadow-lg`}>
+                    {game.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{game.subject}</span>
+                    <p className="font-black text-white text-base mt-0.5">{game.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{game.description}</p>
+                  </div>
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${game.color} flex items-center justify-center shrink-0 shadow-md`}>
+                    <Play className="w-4 h-4 text-white" fill="white" />
+                  </div>
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 };

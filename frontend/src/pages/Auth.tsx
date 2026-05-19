@@ -3,222 +3,334 @@ import { useNavigate } from "react-router-dom";
 import { useGame } from "@/contexts/GameContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Gamepad2, Mail, Lock, User, Star, Zap, 
-  Sparkles, ArrowRight, Github, Trophy, Hexagon
-} from "lucide-react";
+import { Gamepad2, Mail, Lock, User, ArrowRight, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+type Tab = "login" | "register";
+
+interface FormErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+}
+
+// ─── Validações ───────────────────────────────────────────────────────────────
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateForm(tab: Tab, name: string, email: string, password: string): FormErrors {
+  const errors: FormErrors = {};
+
+  if (tab === "register") {
+    if (!name.trim()) errors.name = "Como você quer ser chamado?";
+    else if (name.trim().length < 2) errors.name = "Nome muito curto. Mínimo 2 letras.";
+  }
+
+  if (!email.trim()) errors.email = "Digite seu e-mail.";
+  else if (!validateEmail(email)) errors.email = "E-mail inválido. Exemplo: nome@email.com";
+
+  if (!password) errors.password = "Digite sua senha.";
+  else if (tab === "register" && password.length < 6)
+    errors.password = "Senha muito curta. Use pelo menos 6 caracteres.";
+
+  return errors;
+}
+
+// ─── Componente de campo com feedback visual ──────────────────────────────────
+function Field({
+  label,
+  icon,
+  error,
+  accentColor,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  error?: string;
+  accentColor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wider ${accentColor}`}>
+        {icon} {label}
+      </Label>
+      {children}
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="flex items-center gap-2 text-sm text-rose-400 font-semibold bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-500/20"
+            role="alert"
+            aria-live="polite"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 const Auth = () => {
   const navigate = useNavigate();
   const { login } = useGame();
+
+  const [tab, setTab] = useState<Tab>("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Limpa erros ao trocar de aba
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    setErrors({});
+    setSuccess(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login();
+
+    const validationErrors = validateForm(tab, name, email, password);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      // Foca no primeiro campo com erro (acessibilidade)
+      const firstErrorKey = Object.keys(validationErrors)[0];
+      document.getElementById(`field-${firstErrorKey}`)?.focus();
+      return;
+    }
+
+    setErrors({});
+    setLoading(true);
+
+    // Simula chamada à API (300ms para dar sensação de resposta real)
+    await new Promise((r) => setTimeout(r, 300));
+
+    const displayName = tab === "register" ? name : email.split("@")[0];
+    login(displayName, email);
+
+    setSuccess(true);
+    setLoading(false);
+
+    // Pequena pausa para o usuário ver o feedback de sucesso antes de navegar
+    await new Promise((r) => setTimeout(r, 600));
     navigate("/dashboard");
   };
 
-  // Variantes para o efeito de mola (Bounce) amigável para crianças
-  const bounceTransition = {
-    type: "spring",
-    stiffness: 260,
-    damping: 20
-  };
+  const isLogin = tab === "login";
+  const accentColor = isLogin ? "text-purple-400" : "text-emerald-400";
+  const btnGradient = isLogin
+    ? "from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 shadow-[0_8px_25px_rgba(147,51,234,0.4)]"
+    : "from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 shadow-[0_8px_25px_rgba(16,185,129,0.4)]";
 
   return (
-    <div className="min-h-screen bg-[#0A0A1A] flex items-center justify-center px-4 relative overflow-hidden font-sans">
-      
-      {/* --- EFEITOS DE FUNDO DIVERTIDOS (ATENÇÃO DA CRIANÇA) --- */}
+    <div className="min-h-screen bg-[#0A0A1A] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+
+      {/* Fundo suave — sem movimento excessivo para não distrair */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Orbes coloridos gigantes no fundo */}
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-600/30 blur-[150px] rounded-full" />
-        <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 10, repeat: Infinity }} className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/30 blur-[150px] rounded-full" />
-        <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 7, repeat: Infinity }} className="absolute top-[40%] left-[40%] w-[30%] h-[30%] bg-blue-500/20 blur-[120px] rounded-full" />
-
-        {/* Ícones flutuantes (Boiando pela tela) */}
-        <motion.div animate={{ y: [0, -30, 0], rotate: [0, 10, -10, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[15%] left-[10%] text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]">
-          <Star className="w-16 h-16 md:w-24 md:h-24" fill="currentColor" />
-        </motion.div>
-        
-        <motion.div animate={{ y: [0, 40, 0], rotate: [0, 360] }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }} className="absolute bottom-[20%] left-[15%] text-purple-500 drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]">
-          <Hexagon className="w-12 h-12 md:w-20 md:h-20" fill="currentColor" />
-        </motion.div>
-
-        <motion.div animate={{ y: [0, -40, 0], rotate: [0, -15, 15, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[25%] right-[10%] text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.8)]">
-          <Zap className="w-16 h-16 md:w-24 md:h-24" fill="currentColor" />
-        </motion.div>
-
-        <motion.div animate={{ y: [0, 20, 0], scale: [1, 1.1, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[15%] right-[12%] text-blue-400 drop-shadow-[0_0_20px_rgba(96,165,250,0.8)]">
-          <Trophy className="w-14 h-14 md:w-20 md:h-20" fill="currentColor" />
-        </motion.div>
+        <div className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] bg-purple-600/20 blur-[160px] rounded-full" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[45%] h-[45%] bg-emerald-500/20 blur-[160px] rounded-full" />
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={bounceTransition}
-        className="w-full max-w-[500px] z-10"
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-[480px] z-10"
       >
-        {/* LOGO GIGANTE E DIVERTIDA */}
-        <div className="text-center mb-10">
-          <motion.div 
-            whileHover={{ scale: 1.1, rotate: 10 }}
-            className="inline-flex items-center justify-center w-28 h-28 rounded-[2rem] bg-gradient-to-br from-purple-500 via-pink-500 to-amber-500 p-1 mb-6 shadow-[0_15px_40px_rgba(217,70,239,0.4)] cursor-pointer"
-          >
-            <div className="w-full h-full bg-[#0A0A1A] rounded-[1.8rem] flex items-center justify-center border-4 border-[#0A0A1A]">
-              <Gamepad2 className="w-16 h-16 text-white animate-pulse" />
-            </div>
-          </motion.div>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-white uppercase drop-shadow-lg">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-[0_8px_30px_rgba(147,51,234,0.4)]">
+            <Gamepad2 className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-black tracking-tight text-white">
             Study<span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Quest</span>
           </h1>
-          <p className="text-slate-300 font-bold mt-3 text-sm md:text-base uppercase tracking-widest bg-white/10 inline-block px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
-            Dê o Start na sua Aventura! 🚀
+          <p className="text-slate-400 mt-2 text-sm font-medium">
+            Sua aventura de aprendizado começa aqui
           </p>
         </div>
 
-        {/* CARD PRINCIPAL (Mais gordinho e legível) */}
-        <div className="relative group">
-          <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 via-pink-500 to-emerald-500 rounded-[2.5rem] blur-xl opacity-40 group-hover:opacity-60 transition duration-500 animate-gradient-x" />
-          
-          <div className="relative rounded-[2rem] bg-[#12122A]/90 backdrop-blur-2xl border-4 border-white/10 p-6 md:p-10 shadow-2xl">
-            <Tabs defaultValue="login" className="w-full">
-              
-              {/* ABAS GIGANTES E FÁCEIS DE CLICAR */}
-              <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-[#0A0A1A] p-2 mb-10 border border-white/5 h-auto">
-                <TabsTrigger 
-                  value="login" 
-                  className="rounded-xl py-4 font-black uppercase text-sm md:text-base tracking-widest data-[state=active]:bg-purple-600 data-[state=active]:text-white transition-all data-[state=active]:shadow-[0_0_20px_rgba(147,51,234,0.5)] text-slate-400"
-                >
-                  Entrar
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="register" 
-                  className="rounded-xl py-4 font-black uppercase text-sm md:text-base tracking-widest data-[state=active]:bg-emerald-500 data-[state=active]:text-white transition-all data-[state=active]:shadow-[0_0_20px_rgba(16,185,129,0.5)] text-slate-400"
-                >
-                  Criar Conta
-                </TabsTrigger>
-              </TabsList>
+        {/* Card */}
+        <div className="rounded-[2rem] bg-[#12122A]/95 backdrop-blur-xl border-2 border-white/10 p-8 shadow-2xl">
 
-              <AnimatePresence mode="wait">
-                <TabsContent value="login">
-                  <motion.form 
-                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-                    onSubmit={handleSubmit} className="space-y-6"
-                  >
-                    {/* CAMPOS DE TEXTO MAIORES */}
-                    <div className="space-y-3">
-                      <Label className="text-slate-300 ml-2 text-sm md:text-base font-black uppercase tracking-wider flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-purple-400"/> E-mail do Jogador
-                      </Label>
-                      <Input
-                        type="email"
-                        placeholder="E-mail"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="bg-[#0A0A1A] border-2 border-slate-700/50 rounded-2xl h-16 px-6 text-lg md:text-xl font-bold text-white focus-visible:ring-purple-500 focus-visible:border-purple-500 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-slate-300 ml-2 text-sm md:text-base font-black uppercase tracking-wider flex items-center gap-2">
-                          <Lock className="w-5 h-5 text-purple-400"/> Senha Secreta
-                        </Label>
-                        <button type="button" className="text-xs md:text-sm uppercase font-bold text-amber-400 hover:text-amber-300 bg-amber-400/10 px-3 py-1 rounded-full">Esqueci</button>
-                      </div>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="bg-[#0A0A1A] border-2 border-slate-700/50 rounded-2xl h-16 px-6 text-lg md:text-xl font-bold text-white focus-visible:ring-purple-500 focus-visible:border-purple-500 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-
-                    {/* BOTÃO CHUNKY (Gordinho) */}
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} className="pt-4">
-                      <Button type="submit" className="w-full rounded-2xl h-16 text-lg md:text-xl font-black uppercase tracking-widest bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white shadow-[0_10px_30px_rgba(217,70,239,0.4)] border-b-4 border-purple-800 active:border-b-0 active:translate-y-1 transition-all">
-                        Dar Start <ArrowRight className="ml-3 w-6 h-6" />
-                      </Button>
-                    </motion.div>
-                  </motion.form>
-                </TabsContent>
-
-                {/* FORM DE CADASTRO */}
-                <TabsContent value="register">
-                  <motion.form 
-                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                    onSubmit={handleSubmit} className="space-y-6"
-                  >
-                    <div className="space-y-3">
-                      <Label className="text-slate-300 ml-2 text-sm md:text-base font-black uppercase tracking-wider flex items-center gap-2">
-                        <User className="w-5 h-5 text-emerald-400"/> Nome do Herói
-                      </Label>
-                      <Input
-                        placeholder="Como quer ser chamado?"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="bg-[#0A0A1A] border-2 border-slate-700/50 rounded-2xl h-16 px-6 text-lg md:text-xl font-bold text-white focus-visible:ring-emerald-500 focus-visible:border-emerald-500 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-slate-300 ml-2 text-sm md:text-base font-black uppercase tracking-wider flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-emerald-400"/> E-mail
-                      </Label>
-                      <Input
-                        type="email"
-                        placeholder="E-mail"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="bg-[#0A0A1A] border-2 border-slate-700/50 rounded-2xl h-16 px-6 text-lg md:text-xl font-bold text-white focus-visible:ring-emerald-500 focus-visible:border-emerald-500 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-slate-300 ml-2 text-sm md:text-base font-black uppercase tracking-wider flex items-center gap-2">
-                        <Lock className="w-5 h-5 text-emerald-400"/> Criar Senha
-                      </Label>
-                      <Input
-                        type="password"
-                        placeholder="Crie uma senha forte"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="bg-[#0A0A1A] border-2 border-slate-700/50 rounded-2xl h-16 px-6 text-lg md:text-xl font-bold text-white focus-visible:ring-emerald-500 focus-visible:border-emerald-500 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} className="pt-4">
-                      <Button type="submit" className="w-full rounded-2xl h-16 text-lg md:text-xl font-black uppercase tracking-widest bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-white shadow-[0_10px_30px_rgba(16,185,129,0.4)] border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 transition-all">
-                        Criar Personagem <Sparkles className="ml-3 w-6 h-6" />
-                      </Button>
-                    </motion.div>
-                  </motion.form>
-                </TabsContent>
-              </AnimatePresence>
-            </Tabs>
-
-            {/* SEÇÃO SOCIAL EXTRA */}
-            <div className="relative mt-10 mb-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-white/10"></div></div>
-              <div className="relative flex justify-center text-xs md:text-sm uppercase font-black tracking-widest">
-                <span className="bg-[#12122A] px-4 text-slate-400">Ou jogue com</span>
-              </div>
-            </div>
-
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
-              <Button variant="outline" className="w-full rounded-2xl h-14 border-2 border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-base md:text-lg transition-all">
-                <Github className="mr-3 w-6 h-6" /> Entrar com GitHub
-              </Button>
-            </motion.div>
+          {/* Abas — grandes e claras */}
+          <div
+            className="grid grid-cols-2 rounded-2xl bg-[#0A0A1A] p-1.5 mb-8 gap-1"
+            role="tablist"
+            aria-label="Escolha entre entrar ou criar conta"
+          >
+            {(["login", "register"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => switchTab(t)}
+                className={`
+                  py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-200
+                  ${tab === t
+                    ? t === "login"
+                      ? "bg-purple-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.4)]"
+                      : "bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                    : "text-slate-400 hover:text-slate-200"
+                  }
+                `}
+              >
+                {t === "login" ? "Entrar" : "Criar Conta"}
+              </button>
+            ))}
           </div>
+
+          {/* Instrução clara — importante para TDAH/autismo */}
+          <p className="text-slate-400 text-sm mb-6 text-center">
+            {isLogin
+              ? "Preencha seu e-mail e senha para continuar."
+              : "Crie sua conta gratuita em menos de 1 minuto."}
+          </p>
+
+          <AnimatePresence mode="wait">
+            <motion.form
+              key={tab}
+              initial={{ opacity: 0, x: isLogin ? -16 : 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isLogin ? 16 : -16 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleSubmit}
+              className="space-y-5"
+              noValidate
+              aria-label={isLogin ? "Formulário de login" : "Formulário de cadastro"}
+            >
+              {/* Campo Nome (só no cadastro) */}
+              {!isLogin && (
+                <Field label="Seu nome" icon={<User className="w-4 h-4" />} error={errors.name} accentColor="text-emerald-400">
+                  <Input
+                    id="field-name"
+                    placeholder="Como quer ser chamado?"
+                    value={name}
+                    onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: undefined })); }}
+                    autoComplete="name"
+                    aria-describedby={errors.name ? "error-name" : undefined}
+                    aria-invalid={!!errors.name}
+                    className={`bg-[#0A0A1A] border-2 rounded-2xl h-14 px-5 text-base font-medium text-white transition-all
+                      ${errors.name ? "border-rose-500 focus-visible:ring-rose-500" : "border-slate-700/50 focus-visible:ring-emerald-500 focus-visible:border-emerald-500"}`}
+                  />
+                </Field>
+              )}
+
+              {/* Campo E-mail */}
+              <Field label="E-mail" icon={<Mail className="w-4 h-4" />} error={errors.email} accentColor={accentColor}>
+                <Input
+                  id="field-email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: undefined })); }}
+                  autoComplete="email"
+                  aria-invalid={!!errors.email}
+                  className={`bg-[#0A0A1A] border-2 rounded-2xl h-14 px-5 text-base font-medium text-white transition-all
+                    ${errors.email ? "border-rose-500 focus-visible:ring-rose-500" : `border-slate-700/50 ${isLogin ? "focus-visible:ring-purple-500 focus-visible:border-purple-500" : "focus-visible:ring-emerald-500 focus-visible:border-emerald-500"}`}`}
+                />
+              </Field>
+
+              {/* Campo Senha */}
+              <Field
+                label={isLogin ? "Senha" : "Criar senha"}
+                icon={<Lock className="w-4 h-4" />}
+                error={errors.password}
+                accentColor={accentColor}
+              >
+                <Input
+                  id="field-password"
+                  type="password"
+                  placeholder={isLogin ? "••••••••" : "Mínimo 6 caracteres"}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: undefined })); }}
+                  autoComplete={isLogin ? "current-password" : "new-password"}
+                  aria-invalid={!!errors.password}
+                  className={`bg-[#0A0A1A] border-2 rounded-2xl h-14 px-5 text-base font-medium text-white transition-all
+                    ${errors.password ? "border-rose-500 focus-visible:ring-rose-500" : `border-slate-700/50 ${isLogin ? "focus-visible:ring-purple-500 focus-visible:border-purple-500" : "focus-visible:ring-emerald-500 focus-visible:border-emerald-500"}`}`}
+                />
+              </Field>
+
+              {/* Feedback de sucesso */}
+              <AnimatePresence>
+                {success && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2 text-emerald-400 font-semibold bg-emerald-500/10 px-4 py-3 rounded-2xl border border-emerald-500/20"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    {isLogin ? "Entrando..." : "Conta criada! Entrando..."}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Botão principal */}
+              <motion.div whileTap={{ scale: 0.97 }} className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={loading || success}
+                  className={`w-full rounded-2xl h-14 text-base font-bold uppercase tracking-wider bg-gradient-to-r ${btnGradient} text-white border-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed`}
+                  aria-label={isLogin ? "Entrar na conta" : "Criar minha conta"}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Aguarde...
+                    </span>
+                  ) : isLogin ? (
+                    <span className="flex items-center gap-2">
+                      Entrar <ArrowRight className="w-5 h-5" />
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      Criar Conta <Sparkles className="w-5 h-5" />
+                    </span>
+                  )}
+                </Button>
+              </motion.div>
+
+              {/* Link para trocar de aba — alternativa textual clara */}
+              <p className="text-center text-sm text-slate-500 pt-1">
+                {isLogin ? (
+                  <>
+                    Não tem conta?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchTab("register")}
+                      className="text-emerald-400 font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
+                    >
+                      Criar agora
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Já tem conta?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchTab("login")}
+                      className="text-purple-400 font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
+                    >
+                      Entrar
+                    </button>
+                  </>
+                )}
+              </p>
+            </motion.form>
+          </AnimatePresence>
         </div>
       </motion.div>
     </div>
