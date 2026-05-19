@@ -4,11 +4,15 @@
   "description": "StudyQuest — Plataforma gamificada de estudos para TDAH e Autismo Nível 1",
   "private": true,
   "scripts": {
-    "dev": "npm run dev:backend & npm run dev:frontend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "install:all": "npm install --prefix frontend && npm install --prefix backend",
     "build": "npm run build --prefix frontend",
     "lint": "npm run lint --prefix frontend && npm run lint --prefix backend"
+  },
+  "_instructions": {
+    "windows": "Abra dois terminais separados: (1) npm run dev:frontend  (2) npm run dev:backend",
+    "frontend_url": "http://localhost:8080",
+    "backend_url": "http://localhost:3001"
   }
 }

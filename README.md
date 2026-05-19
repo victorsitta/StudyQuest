@@ -108,10 +108,19 @@ npm run dev                 # http://localhost:3001
 
 ## Rodar os dois juntos (da raiz)
 
+No Windows, abra **dois terminais separados**:
+
 ```bash
-npm run install:all         # Instala dependências dos dois
-npm run dev                 # Sobe frontend + backend simultaneamente
+# Terminal 1 — Frontend (http://localhost:8080)
+npm run dev:frontend
+
+# Terminal 2 — Backend (http://localhost:3001)
+npm run dev:backend
 ```
+
+> O comando `npm run dev` com `&` não funciona no Windows CMD/PowerShell.  
+> Se quiser rodar com um único comando, instale o pacote `concurrently` globalmente:  
+> `npm install -g concurrently` e então use `concurrently "npm run dev:frontend" "npm run dev:backend"`
 
 ---
 
